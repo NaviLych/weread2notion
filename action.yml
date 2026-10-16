@@ -45,10 +45,23 @@ runs:
         NOTION_DATA_SOURCE_ID: ${{ inputs.notion-data-source-id }}
       
       run: |
-        if weread2notion sync > "$RUNNER_TEMP/weread-sync.log" 2>&1; then
+        LOG_FILE="$RUNNER_TEMP/weread-sync.log"
+        if weread2notion sync > "$LOG_FILE" 2>&1; then
           echo "Sync completed."
         else
-          echo "::error::Sync failed; private logs suppressed."
+          if grep -Eq '缺少 WEREAD_API_KEY|WEREAD_API_KEY (为空|格式不正确)' "$LOG_FILE"; then
+            echo "::error::WEREAD_API_KEY missing or invalid"
+          elif grep -Eq '缺少 NOTION_TOKEN|NOTION_TOKEN (为空|格式不正确)' "$LOG_FILE"; then
+            echo "::error::NOTION_TOKEN missing or invalid"
+          elif grep -Eq 'NOTION_DATA_SOURCE_ID 格式不正确|NOTION_PAGE 格式不正确|缺少 NOTION_PAGE' "$LOG_FILE"; then
+            echo "::error::Notion database configuration invalid"
+          elif grep -q 'APIResponseError' "$LOG_FILE"; then
+            echo "::error::Notion API failed; check token and database permissions"
+          elif grep -Eq 'HTTPError|Gateway 请求失败' "$LOG_FILE"; then
+            echo "::error::WeRead API request failed; check API key"
+          else
+            echo "::error::Unknown sync error; private details suppressed"
+          fi
           exit 1
         fi
 
