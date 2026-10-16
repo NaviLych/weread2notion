@@ -44,7 +44,7 @@ runs:
         NOTION_DATABASE_ID: ${{ inputs.notion-database-id }}
         NOTION_DATA_SOURCE_ID: ${{ inputs.notion-data-source-id }}
       
-      run: 
+      run: |
         if weread2notion sync > "$RUNNER_TEMP/weread-sync.log" 2>&1; then
           echo "Sync completed."
         else
